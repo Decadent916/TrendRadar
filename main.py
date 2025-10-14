@@ -2629,6 +2629,7 @@ def render_feishu_content(
     report_data: Dict, update_info: Optional[Dict] = None, mode: str = "daily"
 ) -> str:
     """渲染飞书内容"""
+    # 热点统计
     text_content = ""
 
     if report_data["stats"]:
@@ -2670,16 +2671,16 @@ def render_feishu_content(
             mode_text = "暂无匹配的热点词汇"
         text_content = f"📭 {mode_text}\n\n"
 
+    # 新增热点
+    new_text_content = ""
     if report_data["new_titles"]:
-        if text_content and "暂无匹配" not in text_content:
-            text_content += f"\n{CONFIG['FEISHU_MESSAGE_SEPARATOR']}\n\n"
 
-        text_content += (
+        new_text_content += (
             f"🆕 **本次新增热点新闻** (共 {report_data['total_new_count']} 条)\n\n"
         )
 
         for source_data in report_data["new_titles"]:
-            text_content += (
+            new_text_content += (
                 f"**{source_data['source_name']}** ({len(source_data['titles'])} 条):\n"
             )
 
@@ -2689,27 +2690,29 @@ def render_feishu_content(
                 formatted_title = format_title_for_platform(
                     "feishu", title_data_copy, show_source=False
                 )
-                text_content += f"  {j}. {formatted_title}\n"
+                new_text_content += f"  {j}. {formatted_title}\n"
 
-            text_content += "\n"
+            new_text_content += "\n"
 
+    if not new_text_content:
+        new_text_content = f"📭 暂无新增的热点新闻\n\n"
+
+    # 失败平台
+    fail_text_content = ""
     if report_data["failed_ids"]:
-        if text_content and "暂无匹配" not in text_content:
-            text_content += f"\n{CONFIG['FEISHU_MESSAGE_SEPARATOR']}\n\n"
 
-        text_content += "⚠️ **数据获取失败的平台：**\n\n"
+        fail_text_content += "⚠️ **数据获取失败的平台：**\n\n"
         for i, id_value in enumerate(report_data["failed_ids"], 1):
-            text_content += f"  • <font color='red'>{id_value}</font>\n"
+            fail_text_content += f"  • <font color='red'>{id_value}</font>\n"
 
-    now = get_beijing_time()
-    text_content += (
-        f"\n\n<font color='grey'>更新时间：{now.strftime('%Y-%m-%d %H:%M:%S')}</font>"
-    )
+    if not fail_text_content:
+        fail_text_content = f"📭 所有平台数据获取成功\n\n"
 
-    if update_info:
-        text_content += f"\n<font color='grey'>TrendRadar 发现新版本 {update_info['remote_version']}，当前 {update_info['current_version']}</font>"
-
-    return text_content
+    return {
+        "text_content": text_content,
+        "new_text_content": new_text_content,
+        "fail_text_content": fail_text_content
+    }
 
 
 def render_dingtalk_content(
@@ -3361,7 +3364,7 @@ def send_to_feishu(
     """发送到飞书"""
     headers = {"Content-Type": "application/json"}
 
-    text_content = render_feishu_content(report_data, update_info, mode)
+    all_content = render_feishu_content(report_data, update_info, mode)
     total_titles = sum(
         len(stat["titles"]) for stat in report_data["stats"] if stat["count"] > 0
     )
@@ -3373,7 +3376,9 @@ def send_to_feishu(
             "total_titles": total_titles,
             "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
             "report_type": report_type,
-            "text": text_content,
+            "news_list": all_content["text_content"],
+            "new_news_list": all_content["new_text_content"],
+            "failed_list": all_content["fail_text_content"],
         },
     }
 
