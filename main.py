@@ -2653,7 +2653,7 @@ def render_feishu_content(
                 text_content += "\n"
 
             if j >= 50:
-                continue  # 飞书单个热点词汇限制最多50条新闻
+                break  # 飞书单个热点词汇限制最多50条新闻
 
         if i < len(report_data["stats"]) - 1:
             text_content += f"\n{CONFIG['FEISHU_MESSAGE_SEPARATOR']}\n\n"
