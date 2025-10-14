@@ -2639,16 +2639,9 @@ def render_feishu_content(
 
     for i, stat in enumerate(report_data["stats"]):
         word = stat["word"]
-        count = stat["count"]
 
         sequence_display = f"<font color='grey'>[{i + 1}/{total_count}]</font>"
-
-        if count >= 10:
-            text_content += f"🔥 {sequence_display} **{word}** : <font color='red'>{count}</font> 条\n\n"
-        elif count >= 5:
-            text_content += f"📈 {sequence_display} **{word}** : <font color='orange'>{count}</font> 条\n\n"
-        else:
-            text_content += f"📌 {sequence_display} **{word}** : {count} 条\n\n"
+        text_content += f"🔥 {sequence_display} **{word}**\n\n"
 
         for j, title_data in enumerate(stat["titles"], 1):
             formatted_title = format_title_for_platform(
@@ -2658,6 +2651,9 @@ def render_feishu_content(
 
             if j < len(stat["titles"]):
                 text_content += "\n"
+
+            if j >= 50:
+                continue  # 飞书单个热点词汇限制最多50条新闻
 
         if i < len(report_data["stats"]) - 1:
             text_content += f"\n{CONFIG['FEISHU_MESSAGE_SEPARATOR']}\n\n"
